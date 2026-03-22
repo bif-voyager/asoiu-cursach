@@ -1,0 +1,46 @@
+.claim-type {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.claim-type-defect {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.claim-type-shortage {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.claim-type-delay {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.claim-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.claim-resolve {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.claim-resolve .btn {
+  align-self: flex-end;
+}
+
+.input-readonly {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: var(--text-secondary) !important;
+  cursor: default !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  font-weight: 500;
+}

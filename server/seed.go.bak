@@ -1,0 +1,78 @@
+package main
+
+import (
+	"database/sql"
+	"log"
+	"path/filepath"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+func main() {
+	dbPath := filepath.Join(".", "database.sqlite")
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil { log.Fatalf("Failed to open db: %v", err) }
+	defer db.Close()
+
+	tables := []string{"order_items", "orders", "employees", "customers", "products"}
+	for _, t := range tables {
+		db.Exec("DELETE FROM " + t)
+		db.Exec("DELETE FROM sqlite_sequence WHERE name='" + t + "'")
+	}
+
+	// 1. Employees
+	employees := []struct{ Name, Position string }{
+		{"Иванов А.С.", "Менеджер"},
+		{"Петров В.И.", "Кладовщик"},
+		{"Сидорова Е.К.", "Логист"},
+		{"Козлов Д.А.", "Менеджер"},
+	}
+	for _, e := range employees {
+		db.Exec("INSERT INTO employees (full_name, position) VALUES (?, ?)", e.Name, e.Position)
+	}
+
+	// 2. Customers
+	customers := []struct{ Name, Type, Address, Contacts string }{
+		{"ООО «АльфаТрейд»", "Юр. лицо", "г. Москва, ул. Ленина, д. 15", "+7 (495) 123-45-67"},
+		{"ИП Смирнов К.В.", "Физ. лицо", "г. Казань, ул. Баумана, д. 42", "+7 (843) 234-56-78"},
+		{"ЗАО «СтройМонтаж»", "Юр. лицо", "г. Новосибирск, пр. Мира, д. 8", "+7 (383) 345-67-89"},
+	}
+	for _, c := range customers {
+		db.Exec("INSERT INTO customers (customer_type, name, address, contact_info) VALUES (?, ?, ?, ?)", c.Type, c.Name, c.Address, c.Contacts)
+	}
+
+	// 3. Products
+	products := []struct{ Sku int; Name string; Stock int; Price float64 }{
+		{123456, "Подшипник роликовый 6205", 150, 450},
+		{654321, "Втулка стальная 40мм", 80, 320},
+		{987654, "Болт М12×80 оцинкованный", 500, 25},
+	}
+	for _, p := range products {
+		db.Exec("INSERT INTO products (sku, name, available_stock, price) VALUES (?, ?, ?, ?)", p.Sku, p.Name, p.Stock, p.Price)
+	}
+
+	// 4. Orders
+	orders := []struct{ CustomerId, EmployeeId int; Date, Delivery, Status, Ttn, ShipDate, RecDate, Problem, ProbDesc, ResDate, ClaimStat string }{
+		{1, 1, "2026-03-01", "2026-03-15", "Новый", "", "", "", "", "", "", ""},
+		{2, 4, "2026-03-02", "2026-03-20", "Отгружен", "ТТН-2026-0001", "2026-03-06", "", "", "", "", ""},
+		{3, 1, "2026-02-25", "2026-03-10", "Получен частично", "ТТН-2026-0002", "2026-02-28", "2026-03-02", "Брак", "Одна шестерня имеет трещину на зубьях", "2026-03-20", "В работе"},
+	}
+	for _, o := range orders {
+		res, err := db.Exec(`INSERT INTO orders 
+			(customer_id, employee_id, order_date, delivery_date, status, ttn_number, shipment_date, receipt_date, claim_type, claim_description, resolution_date, claim_status)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			o.CustomerId, o.EmployeeId, o.Date, o.Delivery, o.Status, o.Ttn, o.ShipDate, o.RecDate, o.Problem, o.ProbDesc, o.ResDate, o.ClaimStat)
+		
+		if err != nil {
+			log.Printf("Order Insert Error: %v", err)
+			continue
+		}
+		
+		id, _ := res.LastInsertId()
+		
+		// 5. Order Items
+		db.Exec("INSERT INTO order_items (order_id, sku, sale_price, ordered_quantity, received_quantity) VALUES (?, ?, ?, ?, ?)", id, 123456, 450, 10, 5)
+	}
+
+	log.Println("Strict English snake_case database seeded successfully!")
+}
